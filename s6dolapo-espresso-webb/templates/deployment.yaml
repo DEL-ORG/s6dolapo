@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.appname }}
+  labels:
+    app: {{ .Values.labels.app }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.labels.app }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.labels.app }}
+        version: {{ .Values.labels.version }}
+    spec:
+      serviceAccountName: {{ .Values.appname }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          envFrom:
+            - secretRef:
+                name: {{ .Values.appname }}-secret
+            - configMapRef:
+                name: {{ .Values.appname }}-configmap
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+              protocol: TCP
+          env:
+            - name: {{ .Values.env.namep }}
+              value: "{{ .Values.env.valuep }}"
+            - name: {{ .Values.env.namer }}
+              value: "{{ .Values.env.valuer }}"
+            - name: {{ .Values.env.namea }}
+              value: "{{ .Values.env.valuea }}"
+            - name: {{ .Values.env.nameb }}
+              value: "{{ .Values.env.valueb }}"
+            - name: {{ .Values.env.namec }}
+              value: "{{ .Values.env.valuec }}"
+            - name: {{ .Values.env.named }}
+              value: "{{ .Values.env.valued }}"
+            - name: {{ .Values.env.namee }}
+              value: "{{ .Values.env.valuee }}"
+
+
+
+          resources:
+{{ toYaml .Values.resources | indent 12 | nindent 6 }}
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 8 | nindent 4 }}
+      affinity:
+{{ toYaml .Values.affinity | indent 8 | nindent 4 }}
+      tolerations:
+{{ toYaml .Values.tolerations | indent 8 | nindent 4 }}

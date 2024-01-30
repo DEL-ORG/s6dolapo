@@ -1,0 +1,232 @@
+NAME: frontend
+LAST DEPLOYED: Tue Jan 23 21:51:32 2024
+NAMESPACE: s6dolapo
+STATUS: pending-install
+REVISION: 1
+HOOKS:
+---
+# Source: s6dolap-espresso-web/templates/tests/test-connection.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "frontend-s6dolap-espresso-web-test-connection"
+  labels:
+    helm.sh/chart: s6dolap-espresso-web-0.1.0
+    app.kubernetes.io/name: s6dolap-espresso-web
+    app.kubernetes.io/instance: frontend
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    "helm.sh/hook": test
+spec:
+  containers:
+    - name: wget
+      image: busybox
+      command: ['wget']
+      args: ['frontend-s6dolap-espresso-web:8092']
+  restartPolicy: Never
+MANIFEST:
+---
+# Source: s6dolap-espresso-web/templates/pdb.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: s6dolap-espresso-rev-v1
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: s6dolap-espresso-rev
+---
+# Source: s6dolap-espresso-web/templates/pdb2.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: s6dolap-espresso-rev-v2
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: s6dolap-espresso-rev
+---
+# Source: s6dolap-espresso-web/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: s6dolap-espresso-rev-v1
+  labels:
+    app: s6dolap-espresso-rev
+---
+# Source: s6dolap-espresso-web/templates/serviceaccount2.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: s6dolap-espresso-rev-v2
+  labels:
+    app: s6dolap-espresso-rev
+---
+# Source: s6dolap-espresso-web/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: s6dolap-espresso-rev
+  labels:
+    app: s6dolap-espresso-rev
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8092
+      targetPort: 80
+      protocol: TCP
+      name: http
+  selector:
+    app: s6dolap-espresso-rev
+---
+# Source: s6dolap-espresso-web/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: s6dolap-espresso-rev-v1
+  labels:
+    app: s6dolap-espresso-rev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: s6dolap-espresso-rev
+  template:
+    metadata:
+      labels:
+        app: s6dolap-espresso-rev
+        version: v1
+    spec:
+      serviceAccountName: frontend-s6dolap-espresso-web
+      securityContext:
+        {}
+      containers:
+        - name: s6dolap-espresso-web
+          securityContext:
+            {}
+          image: "hossambarakat/espresso-shop-reviews:1.16.0"
+          env:
+            - name: SERVICE_VERSION
+              value: v1
+          
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          #livenessProbe:
+          #  httpGet:
+          #    path: /
+          #    port: http
+          #readinessProbe:
+          #  httpGet:
+          #    path: /
+          #    port: http
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+---
+# Source: s6dolap-espresso-web/templates/deployment2.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: s6dolap-espresso-rev-v2
+  labels:
+    app: s6dolap-espresso-rev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: s6dolap-espresso-rev
+  template:
+    metadata:
+      labels:
+        app: s6dolap-espresso-rev
+        version: v2
+    spec:
+      serviceAccountName: frontend-s6dolap-espresso-web
+      securityContext:
+        {}
+      containers:
+        - name: s6dolap-espresso-web
+          securityContext:
+            {}
+          image: "hossambarakat/espresso-shop-reviews:1.16.0"
+          env:
+            - name: SERVICE_VERSION
+              value: v2
+          
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          #livenessProbe:
+          #  httpGet:
+          #    path: /
+          #    port: http
+          #readinessProbe:
+          #  httpGet:
+          #    path: /
+          #    port: http
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+---
+# Source: s6dolap-espresso-web/templates/hpa.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: s6dolap-espresso-rev-v1
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: s6dolap-espresso-rev
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50
+---
+# Source: s6dolap-espresso-web/templates/hpa2.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: s6dolap-espresso-rev-v2
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: s6dolap-espresso-rev
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50
+
+NOTES:
+1. Get the application URL by running these commands:
+  export POD_NAME=$(kubectl get pods --namespace s6dolapo -l "app.kubernetes.io/name=s6dolap-espresso-web,app.kubernetes.io/instance=frontend" -o jsonpath="{.items[0].metadata.name}")
+  export CONTAINER_PORT=$(kubectl get pod --namespace s6dolapo $POD_NAME -o jsonpath="{.spec.containers[0].ports[0].containerPort}")
+  echo "Visit http://127.0.0.1:8080 to use your application"
+  kubectl --namespace s6dolapo port-forward $POD_NAME 8080:$CONTAINER_PORT

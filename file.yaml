@@ -1,0 +1,150 @@
+---
+# Source: espresso-review/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: RELEASE-NAME-espresso-review
+  labels:
+    helm.sh/chart: espresso-review-0.1.0
+    version: v1
+    app.kubernetes.io/name: espresso-review
+    app.kubernetes.io/instance: RELEASE-NAME
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: espresso-review/templates/config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: espresso-review
+data:
+   SERVICE_VERSION: v1
+---
+# Source: espresso-review/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: RELEASE-NAME-espresso-review
+  labels:
+    helm.sh/chart: espresso-review-0.1.0
+    version: v1
+    app.kubernetes.io/name: espresso-review
+    app.kubernetes.io/instance: RELEASE-NAME
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: NodePort
+  ports:
+    - port: 8092
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    version: v1
+    app.kubernetes.io/name: espresso-review
+    app.kubernetes.io/instance: RELEASE-NAME
+---
+# Source: espresso-review/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: RELEASE-NAME-espresso-review
+  labels:
+    helm.sh/chart: espresso-review-0.1.0
+    version: v1
+    app.kubernetes.io/name: espresso-review
+    app.kubernetes.io/instance: RELEASE-NAME
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      version: v1
+      app.kubernetes.io/name: espresso-review
+      app.kubernetes.io/instance: RELEASE-NAME
+  template:
+    metadata:
+      labels:
+        version: v1
+        app.kubernetes.io/name: espresso-review
+        app.kubernetes.io/instance: RELEASE-NAME
+    spec:
+      serviceAccountName: RELEASE-NAME-espresso-review
+      securityContext:
+        {}
+      containers:
+        - name: espresso-review
+          securityContext:
+            {}
+          image: "nginx:1.16.0"
+          imagePullPolicy: IfNotPresent
+          envFrom:
+          - configMapRef:
+                name: espresso-review
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+---
+# Source: espresso-review/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: RELEASE-NAME-espresso-review
+  labels:
+    helm.sh/chart: espresso-review-0.1.0
+    version: v1
+    app.kubernetes.io/name: espresso-review
+    app.kubernetes.io/instance: RELEASE-NAME
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  rules:
+    - host: "chart-example.local"
+      http:
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: RELEASE-NAME-espresso-review
+                port:
+                  number: 8092
+---
+# Source: espresso-review/templates/tests/test-connection.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "RELEASE-NAME-espresso-review-test-connection"
+  labels:
+    helm.sh/chart: espresso-review-0.1.0
+    version: v1
+    app.kubernetes.io/name: espresso-review
+    app.kubernetes.io/instance: RELEASE-NAME
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    "helm.sh/hook": test
+spec:
+  containers:
+    - name: wget
+      image: busybox
+      command: ['wget']
+      args: ['RELEASE-NAME-espresso-review:8092']
+  restartPolicy: Never
