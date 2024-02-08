@@ -1,0 +1,36 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: s6dolapo-backup
+spec:
+  schedule: "* * * * *"  # Run the job every minute
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: s6dolapo-backup
+            image: dawe101/s6backup:latest  # Replace with your Docker image name and tag
+            imagePullPolicy: IfNotPresent
+            envFrom:
+            - secretRef:
+                name: s6dolapo-backup
+        
+            # env:
+            #   - name: AWS_ACCESS_KEY_ID
+            #     value: "your-aws-access-key-id"
+            #   - name: AWS_SECRET_ACCESS_KEY
+            #     value: "your-aws-secret-access-key"
+            #   - name: AWS_DEFAULT_REGION
+            #     value: "your-aws-region"
+            # volumeMounts:
+            # - name: backup-volume
+            #   mountPath: /backup
+          restartPolicy: OnFailure
+          # volumes:
+          # - name: backup-volume
+          #   persistentVolumeClaim:
+          #     claimName: your-pvc-name  # Replace with your PersistentVolumeClaim name
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+
